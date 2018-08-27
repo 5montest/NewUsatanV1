@@ -14,7 +14,7 @@
 #define RIGHT_PIN1 6
 
 #define FREQ 500
-#define MAX_DUTY 50
+#define MAX_DUTY 150000
 
 #define BUTTON_DATA_MAX 12
 #define STICK_DATA_MAX 6
@@ -73,19 +73,19 @@ void controll(char btn[],int stk[],int pi)
     if(stick_x == 0 && stick_y > 0){
         forword(stick_y,pi);
     }else if(stick_x > 0 && stick_y > 0){
-        r_forword(stick_x,stick_y);
+        r_forword(stick_x,stick_y,pi);
     }else if(stick_x > 0 && stick_y == 0){
-        right(stick_x);
+        right(stick_x,pi);
     }else if(stick_x > 0 && stick_y < 0){
-        r_back(stick_x,stick_y);
+        r_back(stick_x,stick_y,pi);
     }else if(stick_x == 0 && stick_y < 0){
-        back(stick_y);
+        back(stick_y,pi);
     }else if(stick_x < 0 && stick_y < 0){
-        l_back(stick_x,stick_y);
+        l_back(stick_x,stick_y,pi);
     }else if(stick_x < 0 && stick_y == 0){
-        left(stick_x);
+        left(stick_x,pi);
     }else if(stick_x < 0 && stick_y > 0){
-        l_forword(stick_x,stick_y);
+        l_forword(stick_x,stick_y,pi);
     }else{
         no_move(pi);
     }
@@ -146,7 +146,7 @@ void right(int stick,int pi){
     gpio_write(pi,RIGHT_PIN1,1);
 
     hardware_PWM(pi,LEFT_PWM,FREQ,percent);
-    hardware_PWM(pi,RIGHT_PWM,FREQ,percent);
+    hardware_PWM(pi,RIGHT_PWM,FREQ,0);
     
     printf("right:l=%d%,r=0%\n",percent);
 }
@@ -228,7 +228,7 @@ void left(int stick,int pi){
     gpio_write(pi,RIGHT_PIN0,0);
     gpio_write(pi,RIGHT_PIN1,1);
 
-    hardware_PWM(pi,LEFT_PWM,FREQ,percent);
+    hardware_PWM(pi,LEFT_PWM,FREQ,0);
     hardware_PWM(pi,RIGHT_PWM,FREQ,percent);
     
     printf("left:l=0%,r=%d%\n",percent);
