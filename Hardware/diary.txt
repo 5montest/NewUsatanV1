@@ -24,3 +24,14 @@
 1本目：HIGH
 2本目：HIGH
 3本目：PWM255
+
+今回のプログラムでは・・・
+<左タイヤ>
+1本目：茶 LEFT_PIN0
+2本目：赤 LEFT_PIN1
+3本目：橙 LEFT_PWM
+
+<右タイヤ>
+1本目：緑 RIGHT_PIN0
+2本目：黄 RIGHT_PIN1
+3本目：青 RIGHT_PWM
