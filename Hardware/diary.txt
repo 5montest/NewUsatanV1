@@ -56,3 +56,11 @@ GPIO19：青 RIGHT_PWM
 GPIO13：黄 RIGHT_PIN0
 GPIO06：緑 RIGHT_PIN1
 
+controll.cの仕様について述べていなかったのでここで述べる
+デフォルトだと
+動作周波数は500Hz
+duty比は最大15%となっている。
+
+可変可能範囲は
+動作周波数：  0Hz ~ 125MHz
+duty比：     0(0%) ~ 1000000 (100%)
