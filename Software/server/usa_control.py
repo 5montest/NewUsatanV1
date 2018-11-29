@@ -1,14 +1,53 @@
 #!/usr/bin/env python
 
+import pigpio
+import time
+
 import rospy
 from geometry_msgs.msg import Twist
 
-def callback(msg):
-    linear_x = msg.linear.x
-    angular_z = msg.angular.z
+l_pwm = 18
+l_pin0 = 17
+l_pin1 = 27
+r_pwm = 19
+r_pin0 = 13
+r_pin1 = 6
 
-    print linear_x
-    print angular_z
+freq = 1000
+duty = 100000
+
+pi = pigpio.pi()
+pi.set_mode(l_pwm,pigpio.OUTPUT)
+pi.set_mode(l_pin0,pigpio.OUTPUT)
+pi.set_mode(l_pin1,pigpio.OUTPUT)
+pi.set_mode(r_pwm,pigpio.OUTPUT)
+pi.set_mode(r_pin0,pigpio.OUTPUT)
+pi.set_mode(r_pin1,pigpio.OUTPUT)
+
+pi.write(l_pin0,0)
+pi.write(l_pin1,1)
+pi.write(r_pin0,0)
+pi.write(r_pin1,1)
+
+def callback(msg):
+    linear = msg.linear.x
+    angular = msg.angular.z
+
+    print linear
+    print angular
+
+    if linear > 0:
+        pi.hardware_PWM(l_pwm,freq,duty)
+        pi.hardware_PWM(r_pwm,freq,duty)
+    else if angular > 0:
+        pi.hardware_PWM(l_pwm,freq,duty)
+        pi.hardware_PWM(r_pwm,freq,0)
+    else if angular < 0:
+        pi.hardware_PWM(l_pwm,freq,0)
+        pi.hardware_PWM(r_pwm,freq,duty)
+    else:
+        pi.hardware_PWM(l_pwm,freq,0)
+        pi.hardware_PWM(r_pwm,freq,0)
 
 def listener():
     rospy.init_node('cmd_vel_subscriber')
@@ -17,4 +56,7 @@ def listener():
     rospy.spin()
 
 if __name__ == '__main__':
-    listener()
+    try:
+        listener()
+    except KeyboardInterrupt:
+        pi.stop()
