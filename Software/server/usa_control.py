@@ -24,11 +24,6 @@ pi.set_mode(r_pwm,pigpio.OUTPUT)
 pi.set_mode(r_pin0,pigpio.OUTPUT)
 pi.set_mode(r_pin1,pigpio.OUTPUT)
 
-pi.write(l_pin0,0)
-pi.write(l_pin1,1)
-pi.write(r_pin0,0)
-pi.write(r_pin1,1)
-
 def callback(msg):
     linear = msg.linear.x
     angular = msg.angular.z
@@ -37,15 +32,42 @@ def callback(msg):
     print angular
 
     if linear > 0:
+        pi.write(l_pin0,0)
+        pi.write(l_pin1,1)
+        pi.write(r_pin0,0)
+        pi.write(r_pin1,1)
         pi.hardware_PWM(l_pwm,freq,duty)
         pi.hardware_PWM(r_pwm,freq,duty)
+        
+    else if linear < 0:
+        pi.write(l_pin0,1)
+        pi.write(l_pin1,0)
+        pi.write(r_pin0,1)
+        pi.write(r_pin1,0)
+        pi.hardware_PWM(l_pwm,freq,duty)
+        pi.hardware_PWM(r_pwm,freq,duty)
+        
     else if angular > 0:
+        pi.write(l_pin0,0)
+        pi.write(l_pin1,1)
+        pi.write(r_pin0,0)
+        pi.write(r_pin1,1)
         pi.hardware_PWM(l_pwm,freq,duty)
         pi.hardware_PWM(r_pwm,freq,0)
+        
     else if angular < 0:
+        pi.write(l_pin0,0)
+        pi.write(l_pin1,1)
+        pi.write(r_pin0,0)
+        pi.write(r_pin1,1)
         pi.hardware_PWM(l_pwm,freq,0)
         pi.hardware_PWM(r_pwm,freq,duty)
+        
     else:
+        pi.write(l_pin0,0)
+        pi.write(l_pin1,1)
+        pi.write(r_pin0,0)
+        pi.write(r_pin1,1)
         pi.hardware_PWM(l_pwm,freq,0)
         pi.hardware_PWM(r_pwm,freq,0)
 
