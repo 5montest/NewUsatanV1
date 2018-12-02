@@ -80,4 +80,10 @@ if __name__ == '__main__':
     try:
         listener()
     except KeyboardInterrupt:
+        pi.write(l_pin0,0)
+        pi.write(l_pin1,1)
+        pi.write(r_pin0,0)
+        pi.write(r_pin1,1)
+        pi.hardware_PWM(l_pwm,freq,0)
+        pi.hardware_PWM(r_pwm,freq,0)
         pi.stop()
