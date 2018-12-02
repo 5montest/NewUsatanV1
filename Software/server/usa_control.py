@@ -38,7 +38,7 @@ def callback(msg):
         pi.hardware_PWM(l_pwm,freq,duty)
         pi.hardware_PWM(r_pwm,freq,duty)
         
-    else if linear < 0:
+    elif linear < 0:
         pi.write(l_pin0,1)
         pi.write(l_pin1,0)
         pi.write(r_pin0,1)
@@ -46,7 +46,7 @@ def callback(msg):
         pi.hardware_PWM(l_pwm,freq,duty)
         pi.hardware_PWM(r_pwm,freq,duty)
         
-    else if angular > 0:
+    elif angular > 0:
         pi.write(l_pin0,0)
         pi.write(l_pin1,1)
         pi.write(r_pin0,0)
@@ -54,7 +54,7 @@ def callback(msg):
         pi.hardware_PWM(l_pwm,freq,duty)
         pi.hardware_PWM(r_pwm,freq,0)
         
-    else if angular < 0:
+    elif angular < 0:
         pi.write(l_pin0,0)
         pi.write(l_pin1,1)
         pi.write(r_pin0,0)
