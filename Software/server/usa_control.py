@@ -72,7 +72,7 @@ def callback(msg):
 
 def listener():
     rospy.init_node('cmd_vel_subscriber')
-    sub = rospy.Subscriber('/turtle1/cmd_vel',Twist,callback)
+    sub = rospy.Subscriber('/cmd_vel',Twist,callback)
     print sub
     rospy.spin()
 
