@@ -1,9 +1,14 @@
 #!/usr/bin/python2
 # -*- coding: utf-8 -*-
 
+import pigpio
+
 import smbus            
 import math             
-from time import sleep  
+from time import sleep
+
+import rospy
+from sensor_msgs.msg import Imu
 
 
 
