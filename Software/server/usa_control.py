@@ -1,6 +1,8 @@
 #!/usr/bin/env python2
 
 import pigpio
+import time
+import math
 
 import rospy
 from geometry_msgs.msg import Twist
@@ -13,72 +15,116 @@ r_pin0 = 13
 r_pin1 = 6
 
 freq = 1000
-duty = 100000
+duty_max = 100000
 
-pi = pigpio.pi()
-pi.set_mode(l_pwm,pigpio.OUTPUT)
-pi.set_mode(l_pin0,pigpio.OUTPUT)
-pi.set_mode(l_pin1,pigpio.OUTPUT)
-pi.set_mode(r_pwm,pigpio.OUTPUT)
-pi.set_mode(r_pin0,pigpio.OUTPUT)
-pi.set_mode(r_pin1,pigpio.OUTPUT)
+class UsaControl:
+    def __init__(self, pi):
+        self.pi = pi
+        self.linear = 0
+        self.angular = 0
+        self.l_duty = 0
+        self.r_duty = 0
+        self.old_linear = 0
+        self.l_speed = 0
+        self.r_speed = 0
 
-def callback(msg):
-    linear = msg.linear.x
-    angular = msg.angular.z
+    def callback(self, msg):
+        self.old_linear = self.linear
+        self.linear = msg.linear.x
+        self.angular = msg.angular.z
 
-    print linear
-    print angular
+        print linear
+        print angular
 
-    if linear > 0:
-        pi.write(l_pin0,0)
-        pi.write(l_pin1,1)
-        pi.write(r_pin0,0)
-        pi.write(r_pin1,1)
-        pi.hardware_PWM(l_pwm,freq,duty)
-        pi.hardware_PWM(r_pwm,freq,duty)
-        
-    elif linear < 0:
-        pi.write(l_pin0,1)
-        pi.write(l_pin1,0)
-        pi.write(r_pin0,1)
-        pi.write(r_pin1,0)
-        pi.hardware_PWM(l_pwm,freq,duty)
-        pi.hardware_PWM(r_pwm,freq,duty)
-        
-    elif angular > 0:
-        pi.write(l_pin0,0)
-        pi.write(l_pin1,1)
-        pi.write(r_pin0,0)
-        pi.write(r_pin1,1)
-        pi.hardware_PWM(l_pwm,freq,duty)
-        pi.hardware_PWM(r_pwm,freq,0)
-        
-    elif angular < 0:
-        pi.write(l_pin0,0)
-        pi.write(l_pin1,1)
-        pi.write(r_pin0,0)
-        pi.write(r_pin1,1)
-        pi.hardware_PWM(l_pwm,freq,0)
-        pi.hardware_PWM(r_pwm,freq,duty)
-        
-    else:
-        pi.write(l_pin0,0)
-        pi.write(l_pin1,1)
-        pi.write(r_pin0,0)
-        pi.write(r_pin1,1)
-        pi.hardware_PWM(l_pwm,freq,0)
-        pi.hardware_PWM(r_pwm,freq,0)
+    def callback_l(self, msg):
+        self.l_speed = msg
 
-def listener():
-    rospy.init_node('cmd_vel_subscriber')
-    sub = rospy.Subscriber('/cmd_vel',Twist,callback)
-    print sub
-    rospy.spin()
+    def callback_r(self, msg):
+        self.r_speed = msg
+
+
+    def listener(self):
+        rospy.init_node('cmd_vel_subscriber')
+        sub = rospy.Subscriber('/cmd_vel',Twist,callback)
+        rps_r = rospy.Subscriber('/encoder_R',Float32,callback_r)
+        rps_l = rospy.Subscriber('/encoder_L',Float32,callback_l)
+
+        print sub
+
+        # -------------------- MAIN LOOP ------------------------------
+        while True:
+            time.sleep(0.001)
+
+            # Move forward
+            if linear > 0:
+                if (self.old_linear != self.linear):
+                    self.l_duty = l_speed*duty_max
+                    self.r_duty = r_speed*duty_max
+                    self.old_linear = self.linear # Flag disable
+                self.l_duty -= (l_speed - r_speed)/(2*math.pi)*duty_max
+                self.r_duty -= (r_speed - l_speed)/(2*math.pi)*duty_max
+
+                pi.write(l_pin0,0)
+                pi.write(l_pin1,1)
+                pi.hardware_PWM(l_pwm,freq,l_duty)
+                pi.write(r_pin0,0)
+                pi.write(r_pin1,1)
+                pi.hardware_PWM(r_pwm,freq,r_duty)
+               
+            # Move backward
+            elif linear < 0:
+                pi.write(l_pin0,1)
+                pi.write(l_pin1,0)
+                pi.hardware_PWM(l_pwm,freq,l_duty)
+                pi.write(r_pin0,1)
+                pi.write(r_pin1,0)
+                pi.hardware_PWM(r_pwm,freq,r_duty)
+               
+            # Turn right
+            elif angular > 0:
+                pi.write(l_pin0,0)
+                pi.write(l_pin1,1)
+                pi.hardware_PWM(l_pwm,freq,l_duty)
+                pi.write(r_pin0,0)
+                pi.write(r_pin1,1)
+                pi.hardware_PWM(r_pwm,freq,0)
+               
+            # Turn left
+            elif angular < 0:
+                pi.write(l_pin0,0)
+                pi.write(l_pin1,1)
+                pi.hardware_PWM(l_pwm,freq,0)
+                pi.write(r_pin0,0)
+                pi.write(r_pin1,1)
+                pi.hardware_PWM(r_pwm,freq,r_duty)
+               
+            # Stop
+            else:
+                pi.write(l_pin0,0)
+                pi.write(l_pin1,1)
+                pi.hardware_PWM(l_pwm,freq,0)
+                pi.write(r_pin0,0)
+                pi.write(r_pin1,1)
+                pi.hardware_PWM(r_pwm,freq,0)
+
+        rospy.spin()
 
 if __name__ == '__main__':
     try:
-        listener()
+        pi = pigpio.pi()
+        # Left config
+        pi.set_mode(l_pwm,pigpio.OUTPUT)
+        pi.set_mode(l_pin0,pigpio.OUTPUT)
+        pi.set_mode(l_pin1,pigpio.OUTPUT)
+        # Right config
+        pi.set_mode(r_pwm,pigpio.OUTPUT)
+        pi.set_mode(r_pin0,pigpio.OUTPUT)
+        pi.set_mode(r_pin1,pigpio.OUTPUT)
+        
+        # Start control
+        usa_control = UsaControl(pi)
+        usa_control.listener()
+
     except KeyboardInterrupt:
         pi.write(l_pin0,0)
         pi.write(l_pin1,1)
