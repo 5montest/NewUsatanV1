@@ -6,6 +6,7 @@ import math
 
 import rospy
 from geometry_msgs.msg import Twist
+from std_msgs.msg import Float32
 
 l_pwm = 18
 l_pin0 = 17
@@ -22,8 +23,8 @@ class UsaControl:
         self.pi = pi
         self.linear = 0
         self.angular = 0
-        self.l_duty = 0
-        self.r_duty = 0
+        self.l_duty = 0.0
+        self.r_duty = 0.0
         self.old_linear = 0
         self.l_speed = 0
         self.r_speed = 0
@@ -33,8 +34,8 @@ class UsaControl:
         self.linear = msg.linear.x
         self.angular = msg.angular.z
 
-        print linear
-        print angular
+        #print self.linear
+        #print self.angular
 
     def callback_l(self, msg):
         self.l_speed = msg
@@ -56,23 +57,25 @@ class UsaControl:
             time.sleep(0.001)
 
             # Move forward
-            if linear > 0:
+            if self.linear > 0:
                 if (self.old_linear != self.linear):
-                    self.l_duty = l_speed*duty_max
-                    self.r_duty = r_speed*duty_max
+                    self.l_duty = self.l_speed*duty_max
+                    self.r_duty = self.r_speed*duty_max
                     self.old_linear = self.linear # Flag disable
-                self.l_duty -= (l_speed - r_speed)/(2*math.pi)*duty_max
-                self.r_duty -= (r_speed - l_speed)/(2*math.pi)*duty_max
+                self.l_duty = self.l_duty - (self.l_speed - self.r_speed)/(2*math.pi)*duty_max
+                self.r_duty = self.r_duty - (self.r_speed - self.l_speed)/(2*math.pi)*duty_max
 
                 pi.write(l_pin0,0)
                 pi.write(l_pin1,1)
-                pi.hardware_PWM(l_pwm,freq,l_duty)
+                pi.hardware_PWM(l_pwm,freq,self.l_duty)
                 pi.write(r_pin0,0)
                 pi.write(r_pin1,1)
-                pi.hardware_PWM(r_pwm,freq,r_duty)
+                pi.hardware_PWM(r_pwm,freq,self.r_duty)
+
+                print("L : {}   \t  R : {}".format(self.l_duty, self.r_duty))
                
             # Move backward
-            elif linear < 0:
+            elif self.linear < 0:
                 pi.write(l_pin0,1)
                 pi.write(l_pin1,0)
                 pi.hardware_PWM(l_pwm,freq,l_duty)
@@ -81,7 +84,7 @@ class UsaControl:
                 pi.hardware_PWM(r_pwm,freq,r_duty)
                
             # Turn right
-            elif angular > 0:
+            elif self.angular > 0:
                 pi.write(l_pin0,0)
                 pi.write(l_pin1,1)
                 pi.hardware_PWM(l_pwm,freq,l_duty)
@@ -90,7 +93,7 @@ class UsaControl:
                 pi.hardware_PWM(r_pwm,freq,0)
                
             # Turn left
-            elif angular < 0:
+            elif self.angular < 0:
                 pi.write(l_pin0,0)
                 pi.write(l_pin1,1)
                 pi.hardware_PWM(l_pwm,freq,0)
