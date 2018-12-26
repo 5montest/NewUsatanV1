@@ -45,9 +45,9 @@ class UsaControl:
 
     def listener(self):
         rospy.init_node('cmd_vel_subscriber')
-        sub = rospy.Subscriber('/cmd_vel',Twist,callback)
-        rps_r = rospy.Subscriber('/encoder_R',Float32,callback_r)
-        rps_l = rospy.Subscriber('/encoder_L',Float32,callback_l)
+        sub = rospy.Subscriber('/cmd_vel',Twist,self.callback)
+        rps_r = rospy.Subscriber('/encoder_R',Float32,self.callback_r)
+        rps_l = rospy.Subscriber('/encoder_L',Float32,self.callback_l)
 
         print sub
 
