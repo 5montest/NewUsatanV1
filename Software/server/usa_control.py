@@ -6,7 +6,7 @@ import math
 
 import rospy
 from geometry_msgs.msg import Twist
-from std_msgs.msg import Float32
+from std_msgs.msg import Float32, Bool
 
 l_pwm = 18
 l_pin0 = 17
@@ -28,6 +28,7 @@ class UsaControl:
         self.old_linear = 0
         self.l_speed = 0
         self.r_speed = 0
+        self.motion_sensor = False
 
     def callback(self, msg):
         self.old_linear = self.linear
@@ -38,32 +39,56 @@ class UsaControl:
         #print self.angular
 
     def callback_l(self, msg):
-        self.l_speed = msg
+        self.l_speed = msg.data
 
     def callback_r(self, msg):
-        self.r_speed = msg
+        self.r_speed = msg.data
 
+    def callback_motion(self, msg):
+        self.motion_sensor = msg.data
 
     def listener(self):
         rospy.init_node('cmd_vel_subscriber')
         sub = rospy.Subscriber('/cmd_vel',Twist,self.callback)
         rps_r = rospy.Subscriber('/encoder_R',Float32,self.callback_r)
         rps_l = rospy.Subscriber('/encoder_L',Float32,self.callback_l)
+        sub_m = rospy.Subscriber('/motion_sensor', Bool, self.callback_motion)
 
         print sub
 
         # -------------------- MAIN LOOP ------------------------------
         while True:
-            time.sleep(0.001)
+            time.sleep(0.03)
+
+            # Stop
+            if self.motion_sensor:
+                pi.write(l_pin0,0)
+                pi.write(l_pin1,1)
+                pi.hardware_PWM(l_pwm,freq,0)
+                pi.write(r_pin0,0)
+                pi.write(r_pin1,1)
+                pi.hardware_PWM(r_pwm,freq,0)
+                print("[!!] Motion Detected STOP")
 
             # Move forward
-            if self.linear > 0:
+            elif self.linear > 0:
                 if (self.old_linear != self.linear):
-                    self.l_duty = self.l_speed*duty_max
-                    self.r_duty = self.r_speed*duty_max
+                    self.l_duty = self.linear*duty_max
+                    self.r_duty = self.linear*duty_max
                     self.old_linear = self.linear # Flag disable
-                self.l_duty = self.l_duty - (self.l_speed - self.r_speed)/(2*math.pi)*duty_max
-                self.r_duty = self.r_duty - (self.r_speed - self.l_speed)/(2*math.pi)*duty_max
+                self.l_duty = self.l_duty - (self.l_speed - self.r_speed)*duty_max
+                self.r_duty = self.r_duty - (self.r_speed - self.l_speed)*duty_max
+
+                if (self.l_duty > duty_max):
+                    self.l_duty = duty_max
+                elif  (self.l_duty < 0):
+                    self.l_duty = 0
+                if (self.r_duty > duty_max):
+                    self.r_duty = duty_max
+                elif (self.r_duty < 0):
+                    self.r_duty = 0
+
+                print("L : {}   \t  R : {}".format(self.l_duty, self.r_duty))
 
                 pi.write(l_pin0,0)
                 pi.write(l_pin1,1)
@@ -72,22 +97,21 @@ class UsaControl:
                 pi.write(r_pin1,1)
                 pi.hardware_PWM(r_pwm,freq,self.r_duty)
 
-                print("L : {}   \t  R : {}".format(self.l_duty, self.r_duty))
                
             # Move backward
             elif self.linear < 0:
                 pi.write(l_pin0,1)
                 pi.write(l_pin1,0)
-                pi.hardware_PWM(l_pwm,freq,l_duty)
+                pi.hardware_PWM(l_pwm,freq,self.l_duty)
                 pi.write(r_pin0,1)
                 pi.write(r_pin1,0)
-                pi.hardware_PWM(r_pwm,freq,r_duty)
+                pi.hardware_PWM(r_pwm,freq,self.r_duty)
                
             # Turn right
             elif self.angular > 0:
                 pi.write(l_pin0,0)
                 pi.write(l_pin1,1)
-                pi.hardware_PWM(l_pwm,freq,l_duty)
+                pi.hardware_PWM(l_pwm,freq,self.l_duty)
                 pi.write(r_pin0,0)
                 pi.write(r_pin1,1)
                 pi.hardware_PWM(r_pwm,freq,0)
